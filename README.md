@@ -51,7 +51,7 @@ If you wanted to extend this demo to transmit data back to the PC, all you need 
 
 Documentation
 -------------
-** CMRI(unsigned int address = 0, unsigned int input\_bits = 24, unsigned int output\_bits = 48)**
+**CMRI(unsigned int address = 0, unsigned int input\_bits = 24, unsigned int output\_bits = 48)**
 Creates a new CMRI object. The default values will create a device that matches the capabilities of an SMINI node. If you want to bind to a different node address, or address more or less inputs, you can alter it here. The maximum combined number of addressable inputs and outputs is 2048 (C/MRI limitation). The library will work fine with any number of inputs and outputs, it will simply ignore out-of-range data.
 
 **void set\_address(unsigned int address)**
