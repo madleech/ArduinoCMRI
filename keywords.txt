@@ -1,0 +1,38 @@
+#######################################
+# Syntax Coloring Map for CMRI library
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+CMRI	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+set_address KEYWORD2
+set_length  KEYWORD2
+process     KEYWORD2
+transmit	KEYWORD2
+get_bit     KEYWORD2
+get_byte    KEYWORD2
+set_bit     KEYWORD2
+set_byte    KEYWORD2
+decode      KEYWORD2
+valid       KEYWORD2
+packet_type KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+MAX  LITERAL1
+INIT LITERAL1
+SET  LITERAL1
+GET  LITERAL1
+POLL LITERAL1
+STX  LITERAL1
+ETX  LITERAL1
+
