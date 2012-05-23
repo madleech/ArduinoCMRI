@@ -21,6 +21,18 @@ For documentation and examples please see the main [project page][3].
 [2]: http://www.jlcenterprises.net/
 [3]: http://www.michael.net.nz/projects/ArduinoCMRI
 
+Requirements
+------------
+* JMRI -- http://jmri.org/
+* An Arduino -- http://arduino.cc/
+
+Installation
+------------
+Download the ZIP archive (https://github.com/madleech/ArduinoCMRI/zipball/master) and extract it to your Arduino folder under `libraries/CMRI`.
+
+Restart the Arduino IDE and you should see in File > Examples > CMRI entires for hello world and an input/output example.
+
+
 Code Examples
 -------------
 Here is the 'hello\_world' example program, included in the download:

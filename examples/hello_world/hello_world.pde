@@ -30,7 +30,7 @@
 
 #include <CMRI.h>
 
-CMRI cmri(); // defaults to a SMINI with address 0. SMINI = 24 inputs, 48 outputs
+CMRI cmri; // defaults to a SMINI with address 0. SMINI = 24 inputs, 48 outputs
 
 void setup() {
   Serial.begin(9600); // make sure this matches your speed set in JMRI
