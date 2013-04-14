@@ -119,7 +119,7 @@ bool CMRI::set_bit(int pos, bool bit)
 		return false; // out of bounds
 	else
 	{
-		int index = bit / 8;
+		int index = pos / 8;
 		_tx_buffer[index] = bit
 			? _tx_buffer[index] | 1 << pos % 8		// if bit=1, then OR it
 			: _tx_buffer[index] & ~(1 << pos % 8) // if bit=0, then NAND it
