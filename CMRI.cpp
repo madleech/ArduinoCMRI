@@ -150,8 +150,10 @@ void CMRI::transmit()
 	Serial.write(GET);
 	for (int i=0; i<_tx_length; i++)
 	{
-		if (_tx_buffer[i] == 0x02)
-			Serial.write(0x10); // escape because this looks like an STX bit (very basic protocol)
+		if (_tx_buffer[i] == ETX)
+			Serial.write(ESC); // escape because this looks like an STX bit (very basic protocol)
+		if (_tx_buffer[i] == ESC)
+			Serial.write(ESC); // escape because this looks like an escape bit (very basic protocol)
 		Serial.write(_tx_buffer[i]);
 	}
 	Serial.write(ETX);

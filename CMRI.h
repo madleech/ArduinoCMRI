@@ -52,6 +52,7 @@ class CMRI
 			POLL = 'P',	// PC wants to know our status
 			STX	= 0x02, // start byte
 			ETX	= 0x03, // end byte
+			ESC	= 0x10, // escape byte
 		};
 
 private:
