@@ -102,7 +102,7 @@ bool CMRI::get_bit(int pos)
 	// 1: divide index by 8 to get byte offset
 	char c = get_byte(pos / 8);
 	// 2: return bit at that location
-	return (bool) ((c >> (pos - (pos / 8))) & 0x01);
+	return (bool) ((c >> (pos % 8)) & 0x01);
 }
 
 char CMRI::get_byte(int pos)
