@@ -72,25 +72,29 @@ char CMRI::process()
 {
 	while (Serial.available() > 0)
 	{
-		if (_decode(Serial.read()) == true)
+		if (process_char(Serial.read()) == true) // finished decoding a packet, so return its type
 		{
-			// ooh we got a packet!
-			switch(_rx_packet_type)
-			{
-				// if it's a SET that's fine do nothing
-				// if it's an INIT that's also fine, we don't really care
-				// if it's a GET, well, do nothing since it must be someone else replying
-				// if it's a POLL then reply straight away with our data
-				case POLL:
-					transmit();
-					break;
-				case SET:
-					break;
-			}
 			return _rx_packet_type;
 		}
 	}
 	return NULL;
+}
+
+bool CMRI::process_char(char c)
+{
+	// if it's a SET that's fine do nothing
+	// if it's an INIT that's also fine, we don't really care
+	// if it's a GET, well, do nothing since it must be someone else replying
+	// if it's a POLL then reply straight away with our data
+	if (_decode(c) == true) // true => we've decoded a packet
+	{
+		if (_rx_packet_type == POLL) // packet was a poll, so transmit our status
+		{
+			transmit();
+		}
+		return true;
+	}
+	return false;
 }
 
 

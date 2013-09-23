@@ -15,11 +15,11 @@ Features:
 * Emulates an SMINI up to a SUSIC with up to 2048 digital lines available.
 * Error tolerant.
 
-For documentation and examples please see the main [project page][3].
+For documentation and examples please see the main [project blog][3].
 
 [1]: http://jmri.org/
 [2]: http://www.jlcenterprises.net/
-[3]: http://www.michael.net.nz/projects/ArduinoCMRI
+[3]: http://utrainia.michael.net.nz/tag/cmri
 
 Requirements
 ------------
@@ -79,6 +79,11 @@ Reads in available data from the serial port and acts accordingly:
 * For SET/TRANSMIT (T) requests, it updates the output data.
 
 Return value is NULL for no valid packet received, or one of CMRI::INIT, CMRI::SET, CMRI::POLL depending on the packet type received.
+
+**bool process\_char(char c)**
+Similar to the CMRI::process method, but lets you manage the serial data yourself. Use this if you are processing more than 1 CMRI node in a system.
+
+Return value is true if a valid packet has been received and processing of it has finished. Otherwise it returns false.
 
 **void transmit()**
 Transmits the current state of the input data back to the PC. Creates a CMRI::GET packet.

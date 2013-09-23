@@ -36,6 +36,7 @@ class CMRI
 		void set_length(unsigned int input_bits, unsigned int output_bits);
 		
 		char process();
+		bool process_char(char c);
 		void transmit();
 		
 		bool get_bit(int n);
