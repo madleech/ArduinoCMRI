@@ -69,9 +69,6 @@ Creates a new CMRI object. The default values will create a device that matches 
 **void set\_address(unsigned int address)**
 Sets the address of the C/MRI node.
 
-**void set\_length(unsigned int input_bits, unsigned int output_bits)**
-Resizes the internal buffers to handle more or less data.
-
 **char process()**
 Reads in available data from the serial port and acts accordingly:
 * For POLL requests, it replies with the current state of the input data.

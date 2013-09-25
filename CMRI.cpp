@@ -31,8 +31,13 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 	_address = address;
 	_rx_length = (output_bits + 7) / 8;
 	_tx_length = (input_bits + 7) / 8;
-	_rx_buffer = (char *) calloc(_rx_length, 1); // calloc sets all to 0
-	_tx_buffer = (char *) calloc(_tx_length, 1);
+	_rx_buffer = (char *) malloc(_rx_length);
+	_tx_buffer = (char *) malloc(_tx_length);
+	// clear to zero
+	for(int i=0; i<_rx_length; i++)
+		_rx_buffer[i] = 0;
+	for(int i=0; i<_tx_length; i++)
+		_tx_buffer[i] = 0;
 	// parsing state
 	_mode = MODE_INVALID0;
 	_ignore_next_byte = false;
@@ -43,26 +48,6 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 void CMRI::set_address(unsigned int address)
 {
 	_address = address;
-}
-
-void CMRI::set_length(unsigned int input_bits, unsigned int output_bits)
-{
-	int rx_length = (output_bits + 7) / 8; // new size in bytes
-	int tx_length = (input_bits + 7) / 8;
-	
-	// enlarge
-	_rx_buffer = (char *) realloc(_rx_buffer, rx_length);
-	_tx_buffer = (char *) realloc(_tx_buffer, tx_length);
-	
-	// clear to zero
-	if (rx_length > _rx_length) for(int i=_rx_length; i<rx_length; i++)
-		_rx_buffer[i] = 0;
-	if (tx_length > _tx_length) for(int i=_tx_length; i<tx_length; i++)
-		_tx_buffer[i] = 0;
-	
-	// update
-	_rx_length = rx_length;
-	_tx_length = tx_length;
 }
 
 // reads in serial data, decodes packets

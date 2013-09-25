@@ -33,7 +33,6 @@ class CMRI
 	public:
 		CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48);
 		void set_address(unsigned int address);
-		void set_length(unsigned int input_bits, unsigned int output_bits);
 		
 		char process();
 		bool process_char(char c);
