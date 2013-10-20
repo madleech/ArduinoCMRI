@@ -26,23 +26,29 @@
 #include "CMRI.h"
 #include <Arduino.h>
 
-CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bits)
+CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bits, Stream &serial_class)
+	// store details
+: _address(address)
+, _rx_length((output_bits + 7) / 8)
+, _tx_length((input_bits + 7) / 8)
+, _serial(serial_class)
+
+	// set state
+, _rx_buffer((char *) malloc(_rx_length))
+, _tx_buffer((char *) malloc(_tx_length))
+
+	// parsing state
+, _mode(MODE_INVALID0)
+, _ignore_next_byte(false)
+, _rx_index(0)
+, _have_valid_packet(false)
+
 {
-	_address = address;
-	_rx_length = (output_bits + 7) / 8;
-	_tx_length = (input_bits + 7) / 8;
-	_rx_buffer = (char *) malloc(_rx_length);
-	_tx_buffer = (char *) malloc(_tx_length);
 	// clear to zero
 	for(int i=0; i<_rx_length; i++)
 		_rx_buffer[i] = 0;
 	for(int i=0; i<_tx_length; i++)
 		_tx_buffer[i] = 0;
-	// parsing state
-	_mode = MODE_INVALID0;
-	_ignore_next_byte = false;
-	_rx_index = 0;
-	_have_valid_packet = false;
 }
 
 void CMRI::set_address(unsigned int address)
@@ -55,9 +61,9 @@ void CMRI::set_address(unsigned int address)
 // returns packet type so if we got a SET request you know to update your outputs
 char CMRI::process()
 {
-	while (Serial.available() > 0)
+	while (_serial.available() > 0)
 	{
-		if (process_char(Serial.read()) == true) // finished decoding a packet, so return its type
+		if (process_char(_serial.read()) != false) // finished decoding a packet, so return its type
 		{
 			return _rx_packet_type;
 		}
@@ -132,20 +138,21 @@ bool CMRI::set_byte(int pos, char b)
 void CMRI::transmit()
 {
 	delay(50); // tiny delay to let things recover
-	Serial.write(255);
-	Serial.write(255);
-	Serial.write(STX);
-	Serial.write(65 + _address);
-	Serial.write(GET);
+	_serial.write(255);
+	_serial.write(255);
+	_serial.write(STX);
+	_serial.write(65 + _address);
+	_serial.write(GET);
 	for (int i=0; i<_tx_length; i++)
 	{
 		if (_tx_buffer[i] == ETX)
-			Serial.write(ESC); // escape because this looks like an STX bit (very basic protocol)
+			_serial.write(ESC); // escape because this looks like an STX bit (very basic protocol)
 		if (_tx_buffer[i] == ESC)
-			Serial.write(ESC); // escape because this looks like an escape bit (very basic protocol)
-		Serial.write(_tx_buffer[i]);
+			_serial.write(ESC); // escape because this looks like an escape bit (very basic protocol)
+		_serial.write(_tx_buffer[i]);
 	}
-	Serial.write(ETX);
+	_serial.write(ETX);
+	_serial.flush();
 }
 
 // Private methods
@@ -168,6 +175,7 @@ bool CMRI::_decode(char c)
 		_mode = MODE_VALID;
 		_ignore_packet = false;
 		_rx_index = 0;
+		_rx_packet_type = -1; // ??
 	}
 	// body of packet
 	else if (_mode == MODE_VALID)
@@ -198,12 +206,15 @@ bool CMRI::_decode(char c)
 		// address
 		else if (_rx_index == 0)
 		{
-			if (c != 65 + _address)
+			if (c != (65 + _address)) {
 				_ignore_packet = true;
+				_rx_packet_type = -1; // ??
+				_have_valid_packet = false; // ??
+			}
 			_rx_index++;
 		}
 		// packet type
-		else if (_rx_index == 1)
+		else if (_rx_index == 1 && _ignore_packet == false)
 		{
 			_rx_packet_type = c;
 			_rx_index++;

@@ -26,12 +26,13 @@
 #ifndef CMRI_h
 #define CMRI_h
 
-#define _CMRI_VERSION 1 // software version of this library
+#define _CMRI_VERSION 1.5 // version of this library
+#include <Arduino.h>
 
 class CMRI
 {
 	public:
-		CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48);
+		CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48, Stream& serial_class = Serial);
 		void set_address(unsigned int address);
 		
 		char process();
@@ -45,14 +46,14 @@ class CMRI
 		bool set_byte(int n, char b);
 		
 		enum {
-			MAX	= 258,	// max packet length in bytes (64 i/o cards @ 32 bits each + packet type and address bytes)
+			MAX  = 258,	// max packet length in bytes (64 i/o cards @ 32 bits each + packet type and address bytes)
 			INIT = 'I',	// PC is telling us stuff we don't really care about
-			SET	= 'T',	// as in TX from the PC => Arduino, PC is SETing our status
-			GET	= 'R',	// as in TX from Arduino => PC, PC is GETing our status
+			SET  = 'T',	// as in TX from the PC => Arduino, PC is SETing our status
+			GET  = 'R',	// as in TX from Arduino => PC, PC is GETing our status
 			POLL = 'P',	// PC wants to know our status
-			STX	= 0x02, // start byte
-			ETX	= 0x03, // end byte
-			ESC	= 0x10, // escape byte
+			STX  = 0x02, // start byte
+			ETX  = 0x03, // end byte
+			ESC  = 0x10, // escape byte
 		};
 
 private:
@@ -64,6 +65,8 @@ private:
 		char	_rx_packet_type;
 		char* _tx_buffer;
 		char* _rx_buffer;
+		
+		Stream& _serial;
 		
 		// parsing state variables
 		int	  _mode;
