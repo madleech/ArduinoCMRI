@@ -50,8 +50,8 @@ void loop() {
   // 3: update inputs (invert digitalRead due to the pullups)
   cmri.set_bit(0, !digitalRead(6));
   cmri.set_bit(1, !digitalRead(7));
-  cmri.set_bit(2, !digitalRead(6));
-  cmri.set_bit(3, !digitalRead(7));
+  cmri.set_bit(2, !digitalRead(8));
+  cmri.set_bit(3, !digitalRead(9));
 }
 
 
