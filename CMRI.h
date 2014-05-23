@@ -35,7 +35,7 @@ class CMRI
 		CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48, Stream& serial_class = Serial);
 		void set_address(unsigned int address);
 		
-		char process();
+		bool process();
 		bool process_char(char c);
 		void transmit();
 		
@@ -57,7 +57,7 @@ class CMRI
 		};
 
 private:
-		enum {MODE_INVALID0, MODE_INVALID1, MODE_INVALID2, MODE_VALID};
+		enum {PREAMBLE_1,PREAMBLE_2,PREAMBLE_3,DECODE_ADDR,DECODE_CMD,DECODE_DATA,DECODE_ESC_DATA,IGNORE_CMD,IGNORE_DATA,IGNORE_ESC_DATA,POSTAMBLE_SET,POSTAMBLE_POLL,POSTAMBLE_OTHER};
 		
 		int	  _address;
 		int	  _rx_length;
@@ -69,13 +69,10 @@ private:
 		Stream& _serial;
 		
 		// parsing state variables
-		int	  _mode;
-		bool	_ignore_next_byte;
-		bool	_ignore_packet;
-		int	  _rx_index;
-		bool	_have_valid_packet;
+		int     _mode;
+		int     _rx_index;
 		
-		bool  _decode(char c); // process one character received from serial port
+		uint8_t    _decode(uint8_t c); // process one character received from serial port
 };
 
 #endif

@@ -38,10 +38,8 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 , _tx_buffer((char *) malloc(_tx_length))
 
 	// parsing state
-, _mode(MODE_INVALID0)
-, _ignore_next_byte(false)
+, _mode(PREAMBLE_1)
 , _rx_index(0)
-, _have_valid_packet(false)
 
 {
 	// clear to zero
@@ -59,16 +57,16 @@ void CMRI::set_address(unsigned int address)
 // reads in serial data, decodes packets
 // automatically responds to POLL requests
 // returns packet type so if we got a SET request you know to update your outputs
-char CMRI::process()
+bool CMRI::process()
 {
 	while (_serial.available() > 0)
 	{
-		if (process_char(_serial.read()) != false) // finished decoding a packet, so return its type
+		if (process_char(_serial.read()))
 		{
-			return _rx_packet_type;
+			return true;
 		}
 	}
-	return NULL;
+	return false;
 }
 
 bool CMRI::process_char(char c)
@@ -77,15 +75,18 @@ bool CMRI::process_char(char c)
 	// if it's an INIT that's also fine, we don't really care
 	// if it's a GET, well, do nothing since it must be someone else replying
 	// if it's a POLL then reply straight away with our data
-	if (_decode(c) == true) // true => we've decoded a packet
+	switch (_decode(c))
 	{
-		if (_rx_packet_type == POLL) // packet was a poll, so transmit our status
-		{
+		case POLL:
 			transmit();
-		}
-		return true;
+			return true;
+		
+		case SET:
+			return true;
+		
+		default:
+			return false;
 	}
-	return false;
 }
 
 
@@ -156,91 +157,97 @@ void CMRI::transmit()
 }
 
 // Private methods
-
-bool CMRI::_decode(char c)
+uint8_t CMRI::_decode(uint8_t c)
 {
-	// first mark bit
-	if (_mode == MODE_INVALID0 && c == 0xFF)
+	switch(_mode)
 	{
-		_mode = MODE_INVALID1;
-	}
-	// second mark bit
-	else if (_mode == MODE_INVALID1 && c == 0xFF)
-	{
-		_mode = MODE_INVALID2;
-	}
-	// start bit
-	else if (_mode != MODE_VALID && c == STX)
-	{
-		_mode = MODE_VALID;
-		_ignore_packet = false;
-		_rx_index = 0;
-		_rx_packet_type = -1; // ??
-	}
-	// body of packet
-	else if (_mode == MODE_VALID)
-	{
-		// an escape code -- swallow byte
-		if (c == 0x10 && _ignore_next_byte == false)
-		{
-			_ignore_next_byte = true;
-		}
-		// end of packet
-		else if (c == ETX && _ignore_next_byte == false)
-		{
-			_mode = MODE_INVALID0;
+		case PREAMBLE_1:
 			_rx_index = 0;
-			_have_valid_packet = true;
-			_ignore_packet = false;
-			return true;
-		}
-		// packet too long
-		else if (_rx_index >= _rx_length + 2)
-		{
-			_mode	= MODE_INVALID0;
-			_rx_index = 0;
-			_ignore_next_byte = false;
-			_ignore_packet = false;
-			return false;
-		}
-		// address
-		else if (_rx_index == 0)
-		{
-			if (c != (65 + _address)) {
-				_ignore_packet = true;
-				_rx_packet_type = -1; // ??
-				_have_valid_packet = false; // ??
-			}
-			_rx_index++;
-		}
-		// packet type
-		else if (_rx_index == 1 && _ignore_packet == false)
-		{
-			_rx_packet_type = c;
-			_rx_index++;
-			// we are only interested in SET packets, anything else just note 
-			// that we got a packet of that type and then return.
-			if (_rx_packet_type != SET)
-			{
-	 			_mode = MODE_INVALID0;
-	 			_rx_index = 0;
-	 			_have_valid_packet = true;
-				_ignore_packet = false;
-	 			return true;
-			}
-		}
-		// this packet is not meant for us
-		else if (_ignore_packet == true)
-		{
-		}
-		// add to buffer
-		else
-		{
-			_rx_buffer[_rx_index - 2] = c;
-			_rx_index++;
-			_ignore_next_byte = false;
-		}
+			if (c == 0xFF)
+				_mode = PREAMBLE_2;
+			break;
+		
+		case PREAMBLE_2:
+			if (c == 0xFF)
+				_mode = PREAMBLE_3;
+			else
+				_mode = PREAMBLE_1;
+			break;
+		
+		case PREAMBLE_3:
+			if (c == STX)
+				_mode = DECODE_ADDR;
+			else
+				_mode = PREAMBLE_1;
+			break;
+		
+		case DECODE_ADDR:
+			if (c == 'A' + _address)
+				_mode = DECODE_CMD;
+			else if (c >= 'A')
+				_mode = IGNORE_CMD;
+			else
+				_mode = PREAMBLE_1;
+			break;
+		
+		case DECODE_CMD:
+			if (c == SET)
+				_mode = DECODE_DATA;
+			else if (c == POLL)
+				goto POSTAMBLE_POLL;
+			else
+				_mode = POSTAMBLE_OTHER;
+			break;
+		
+		case IGNORE_CMD:
+			_mode = IGNORE_DATA;
+			break;
+		
+		case DECODE_DATA:
+			if (c == ESC)
+				_mode = DECODE_ESC_DATA;
+			else if (c == ETX)
+				goto POSTAMBLE_SET;
+			else if (_rx_index >= _rx_length)
+				{ }
+			else
+				_rx_buffer[_rx_index++] = c;
+			break;
+		
+		case DECODE_ESC_DATA:
+			if (_rx_index >= _rx_length)
+				{ }
+			else
+				_rx_buffer[_rx_index++] = c;
+			_mode = DECODE_DATA;
+			break;
+		
+		case IGNORE_DATA:
+			if (c == ESC)
+				_mode = IGNORE_ESC_DATA;
+			else if (c == ETX)
+				goto POSTAMBLE_IGNORE;
+			break;
+		
+		case IGNORE_ESC_DATA:
+			_mode = IGNORE_DATA;
+			break;
+		
+		case POSTAMBLE_OTHER:
+			_mode = PREAMBLE_1;
+			break;
 	}
-	_have_valid_packet = false;
-	return false;
+	return NULL;
+	
+POSTAMBLE_SET:
+		_mode = PREAMBLE_1;
+		return SET;
+	
+POSTAMBLE_POLL:
+		_mode = PREAMBLE_1;
+		return POLL;
+	
+POSTAMBLE_IGNORE:
+		_mode = PREAMBLE_1;
+		return NULL;
 }
