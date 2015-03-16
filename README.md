@@ -39,7 +39,7 @@ Here is the 'hello\_world' example program, included in the download:
 
     #include <CMRI.h>
     
-    CMRI cmri();
+    CMRI cmri;
     
     void setup() {
       Serial.begin(9600);
