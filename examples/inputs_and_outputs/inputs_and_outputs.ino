@@ -32,7 +32,7 @@
 CMRI cmri; // defaults to a SMINI with address 0. SMINI = 24 inputs, 48 outputs
 
 void setup() {
-  Serial.begin(9600); // make sure this matches your speed set in JMRI
+  Serial.begin(9600, SERIAL_8N2); // make sure this matches your speed set in JMRI
   for (int i=2; i<=5; i++) { pinMode(i, OUTPUT); }
   for (int i=6; i<=9; i++) { pinMode(i, INPUT); digitalWrite(i, HIGH); }
 }

@@ -3,7 +3,7 @@
 CMRI cmri(0, 0, 256); // address 0, 0 inputs, 256 outputs
 
 void setup() {
-  Serial.begin(9600); // make sure this matches your speed set in JMRI
+  Serial.begin(9600, SERIAL_8N2); // make sure this matches your speed set in JMRI
   pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
 }

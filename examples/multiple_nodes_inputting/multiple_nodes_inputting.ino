@@ -25,7 +25,7 @@ CMRI cmri0(0); // first SMINI, 24 inputs, 48 outputs
 CMRI cmri1(1); // second SMINI, another 24 inputs and another 48 outputs
 
 void setup() {
-  Serial.begin(9600); // make sure this matches your speed set in JMRI
+  Serial.begin(9600, SERIAL_8N2); // make sure this matches your speed set in JMRI
   
   cmri0.set_bit(0, HIGH);  // system name CS0001
   cmri0.set_bit(22, LOW);  // system name CS0023

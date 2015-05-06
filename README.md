@@ -42,7 +42,7 @@ Here is the 'hello\_world' example program, included in the download:
     CMRI cmri;
     
     void setup() {
-      Serial.begin(9600);
+      Serial.begin(9600, SERIAL_8N2); // SERIAL_8N2 to match what JMRI expects CMRI hardware to use
       pinMode(13, OUTPUT);
     }
     
@@ -98,11 +98,16 @@ Updates the output buffer to the specified value. Data will be transmitted to th
 Updates an entire byte of the output buffer. Use this with shiftIn and some shift registers to add many extra digital inputs to your system.
 
 
+Troubleshooting
+---------------
+**JMRI reports: unrecognized rep: "50 aa 00" etc / no responses to POLL requests**
+Make sure your `Serial.begin(...)` line is `Serial.begin(9600, SERIAL_8N2)`. Real C/MRI hardware uses 8 data bits, no parity, and *2* stop bits, which is different to regular serial which only has 1 stop bit. Most (i.e. cheap) USB to serial adapters will usually ignore the differences, however some are more rigorous in their parsing of serial data and won't work unless the Arduino is actually transmitting using 2 stop bits. Hence the `SERIAL_8N2` in the `Serial.begin(...)` line.
+
 Protocol
 --------
 The C/MRI protocol is fairly simple, however [documentation][4] can be difficult to come across.
 
-The system usually runs over a serial bus (although an ISA bus version was also produced), and uses the slightly obscure protocol of 8 databits, no parity, and 2 stop bits. Luckily we can get away with just using the default 8n1 @ 9600 setting that Arduino's use by default and USB takes care of the rest.
+The system usually runs over a serial bus (although an ISA bus version was also produced), and uses the slightly obscure protocol of 8 databits, no parity, and 2 stop bits. Luckily we can (usually, see above) get away with just using the default 8n1 @ 9600 setting that Arduino's use by default and USB takes care of the rest.
 
 Each packet is framed as follows: `0xFF 0xFF 0x02` which is two 255 bits, and one STX (start) bit. The data then follows, and is closed by an ETX packet, `0x03`.
 
