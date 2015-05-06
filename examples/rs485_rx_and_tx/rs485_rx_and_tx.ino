@@ -10,7 +10,7 @@ Auto485 bus(DE_PIN); // Arduino pin 2 -> MAX485 DE and RE pins
 CMRI cmri(CMRI_ADDR, 24, 48, bus); // defaults to a SMINI with address 0. SMINI = 24 inputs, 48 outputs
 
 void setup() {
-  bus.begin(9600); // open RS485 bus at 9600bps
+  bus.begin(9600, SERIAL_8N2); // open RS485 bus at 9600bps
   pinMode(LED_PIN, OUTPUT);
 }
 
