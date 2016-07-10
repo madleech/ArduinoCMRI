@@ -51,6 +51,7 @@ class CMRI
 			SET  = 'T',	// as in TX from the PC => Arduino, PC is SETing our status
 			GET  = 'R',	// as in TX from Arduino => PC, PC is GETing our status
 			POLL = 'P',	// PC wants to know our status
+			NOOP = 0x00, // do nothing
 			STX  = 0x02, // start byte
 			ETX  = 0x03, // end byte
 			ESC  = 0x10, // escape byte
@@ -63,8 +64,8 @@ private:
 		int	  _rx_length;
 		int	  _tx_length;
 		char	_rx_packet_type;
-		char* _tx_buffer;
 		char* _rx_buffer;
+		char* _tx_buffer;
 		
 		Stream& _serial;
 		

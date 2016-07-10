@@ -31,11 +31,12 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 : _address(address)
 , _rx_length((output_bits + 7) / 8)
 , _tx_length((input_bits + 7) / 8)
-, _serial(serial_class)
 
 	// set state
 , _rx_buffer((char *) malloc(_rx_length))
 , _tx_buffer((char *) malloc(_tx_length))
+
+, _serial(serial_class)
 
 	// parsing state
 , _mode(PREAMBLE_1)
@@ -237,7 +238,7 @@ uint8_t CMRI::_decode(uint8_t c)
 			_mode = PREAMBLE_1;
 			break;
 	}
-	return NULL;
+	return NOOP;
 	
 POSTAMBLE_SET:
 		_mode = PREAMBLE_1;
@@ -249,5 +250,5 @@ POSTAMBLE_POLL:
 	
 POSTAMBLE_IGNORE:
 		_mode = PREAMBLE_1;
-		return NULL;
+		return NOOP;
 }
