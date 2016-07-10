@@ -24,7 +24,7 @@ For documentation and examples please see the main [project blog][3].
 Requirements
 ------------
 * JMRI -- http://jmri.org/
-* An Arduino -- http://arduino.cc/ -- **Please note**: Arduinos without a separate FTDI chip will not work. This includes the Arduino Leonardo, Uno, and Mega 2560. This is because the JMRI code opens the serial port with both DTR and RTS off, while the Arduino USB CDC code requires either DTR or RTS to be set before it will communicate; without these signals set, it believes there is no device attached. The easiest way around this limitation is to use a "basic" Arduino with an FTDI or other hardware USB-Serial converter.
+* An Arduino -- http://arduino.cc/ -- More modern Arduino boards (such as the Uno) are supported  now!
 
 Installation
 ------------
