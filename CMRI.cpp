@@ -58,16 +58,18 @@ void CMRI::set_address(unsigned int address)
 // reads in serial data, decodes packets
 // automatically responds to POLL requests
 // returns packet type so if we got a SET request you know to update your outputs
-bool CMRI::process()
+char CMRI::process()
 {
+	_ret_mode = NOOP;
 	while (_serial.available() > 0)
 	{
 		if (process_char(_serial.read()))
 		{
-			return true;
+			return _ret_mode;
 		}
 	}
-	return false;
+
+	return _ret_mode;
 }
 
 bool CMRI::process_char(char c)
@@ -80,12 +82,15 @@ bool CMRI::process_char(char c)
 	{
 		case POLL:
 			transmit();
+			_ret_mode = POLL;
 			return true;
 		
 		case SET:
+			_ret_mode = SET;
 			return true;
 		
 		default:
+			_ret_mode = NOOP;
 			return false;
 	}
 }

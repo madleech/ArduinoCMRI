@@ -34,8 +34,8 @@ class CMRI
 	public:
 		CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48, Stream& serial_class = Serial);
 		void set_address(unsigned int address);
-		
-		bool process();
+		char mode;
+		char process();
 		bool process_char(char c);
 		void transmit();
 		
@@ -72,6 +72,8 @@ private:
 		// parsing state variables
 		int     _mode;
 		int     _rx_index;
+		
+		char	_ret_mode;
 		
 		uint8_t    _decode(uint8_t c); // process one character received from serial port
 };
