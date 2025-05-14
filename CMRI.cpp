@@ -139,7 +139,6 @@ bool CMRI::set_byte(int pos, char b)
 
 void CMRI::transmit()
 {
-	// delay(50); // tiny delay to let things recover
 	delayMicroseconds(50); //a minscule delay to let things recover
 	_serial.write(255);
 	_serial.write(255);
