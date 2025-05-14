@@ -104,7 +104,7 @@ bool CMRI::get_bit(int pos)
 
 char CMRI::get_byte(int pos)
 {
-	if (pos > _rx_length)
+	if (pos >= _rx_length)
 		return 0; // out of bounds
 	else
 		return _rx_buffer[pos];
@@ -112,7 +112,7 @@ char CMRI::get_byte(int pos)
 
 bool CMRI::set_bit(int pos, bool bit)
 {
-	if ((pos + 7) / 8 > _tx_length)
+	if ((pos + 7) / 8 >= _tx_length)
 		return false; // out of bounds
 	else
 	{
@@ -127,7 +127,7 @@ bool CMRI::set_bit(int pos, bool bit)
 
 bool CMRI::set_byte(int pos, char b)
 {
-	if (pos > _tx_length)
+	if (pos >= _tx_length)
 		return false; // out of bounds
 	else
 	{
