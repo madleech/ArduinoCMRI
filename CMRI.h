@@ -26,7 +26,7 @@
 #ifndef CMRI_h
 #define CMRI_h
 
-#define _CMRI_VERSION 1.5 // version of this library
+#define _CMRI_VERSION 1.5.1 // version of this library
 #include <Arduino.h>
 
 class CMRI
