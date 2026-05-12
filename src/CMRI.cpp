@@ -39,7 +39,7 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 
       // parsing state
       ,
-      _mode(PREAMBLE_1), _rx_index(0)
+      _mode(PREAMBLE_1), _rx_index(0), _rx_data_len(0), _init_handler(nullptr)
 
 {
 	// clear to zero
@@ -52,6 +52,11 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 void CMRI::set_address(unsigned int address)
 {
 	_address = address;
+}
+
+void CMRI::set_init_handler(void (*handler)(const uint8_t *, int))
+{
+	_init_handler = handler;
 }
 
 // reads in serial data, decodes packets
@@ -71,17 +76,21 @@ bool CMRI::process()
 
 bool CMRI::process_char(char c)
 {
-	// if it's a SET that's fine do nothing
-	// if it's an INIT that's also fine, we don't really care
-	// if it's a GET, well, do nothing since it must be someone else replying
-	// if it's a POLL then reply straight away with our data
-	switch (_decode(c))
+	// if it's a SET, update the output buffer
+	// if it's an INIT, the payload was consumed and the sketch can handle it
+	// if it's a GET, ignore — must be another node replying
+	// if it's a POLL, reply straight away with our input data
+	unsigned char ret = _decode(c);
+	switch (ret)
 	{
 	case POLL:
 		transmit();
 		return true;
 
 	case SET:
+	case INIT:
+		if (ret == INIT && _init_handler)
+			_init_handler((const uint8_t *)_rx_buffer, _rx_data_len);
 		return true;
 
 	default:
@@ -188,7 +197,10 @@ uint8_t CMRI::_decode(uint8_t c)
 		break;
 
 	case DECODE_CMD:
+		_rx_packet_type = c;
 		if (c == SET)
+			_mode = DECODE_DATA;
+		else if (c == INIT)
 			_mode = DECODE_DATA;
 		else if (c == POLL)
 			goto POSTAMBLE_POLL;
@@ -239,8 +251,10 @@ uint8_t CMRI::_decode(uint8_t c)
 	return NOOP;
 
 POSTAMBLE_SET:
+	_rx_data_len = _rx_index;
 	_mode = PREAMBLE_1;
-	return SET;
+	_rx_index = 0;
+	return _rx_packet_type;
 
 POSTAMBLE_POLL:
 	_mode = PREAMBLE_1;

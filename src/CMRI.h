@@ -34,6 +34,7 @@ class CMRI
   public:
 	CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48, Stream &serial_class = Serial);
 	void set_address(unsigned int address);
+	void set_init_handler(void (*handler)(const uint8_t *data, int len));
 
 	bool process();
 	bool process_char(char c);
@@ -82,6 +83,8 @@ class CMRI
 	char _rx_packet_type;
 	char *_rx_buffer;
 	char *_tx_buffer;
+	int _rx_data_len;
+	void (*_init_handler)(const uint8_t *, int);
 
 	Stream &_serial;
 
