@@ -61,9 +61,11 @@ void test_set_bit_reflected_in_transmit(void)
 	cmri.transmit();
 
 	// Frame: FF FF STX 'A' GET <3 data bytes> ETX
-	TEST_ASSERT_EQUAL_UINT8(0x01, s.tx[5]); // byte 0, bit 0
-	TEST_ASSERT_EQUAL_UINT8(0x02, s.tx[6]); // byte 1, bit 1
-	TEST_ASSERT_EQUAL_UINT8(0x00, s.tx[7]);
+	// byte 1 = 0x02 (STX), so it gets DLE-escaped to ESC 0x02
+	TEST_ASSERT_EQUAL_UINT8(0x01, s.tx[5]);      // byte 0, bit 0
+	TEST_ASSERT_EQUAL_UINT8(CMRI::ESC, s.tx[6]); // DLE escape for byte 1 (STX value)
+	TEST_ASSERT_EQUAL_UINT8(0x02, s.tx[7]);      // byte 1, bit 1
+	TEST_ASSERT_EQUAL_UINT8(0x00, s.tx[8]);      // byte 2
 }
 
 // Regression for the set_bit() bounds bug: the old (pos + 7) / 8 check wrongly
@@ -154,7 +156,7 @@ void test_address_filtering(void)
 	TEST_ASSERT_EQUAL_UINT8(0, cmri.get_byte(0));
 }
 
-// Data bytes that collide with ETX/ESC are escaped in the transmitted frame.
+// Data bytes that collide with STX, ETX or ESC are escaped in the transmitted frame.
 void test_transmit_escapes_control_bytes(void)
 {
 	Stream s;
