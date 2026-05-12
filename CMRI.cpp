@@ -112,7 +112,7 @@ char CMRI::get_byte(int pos)
 
 bool CMRI::set_bit(int pos, bool bit)
 {
-	if ((pos + 7) / 8 >= _tx_length)
+	if (pos / 8 >= _tx_length)
 		return false; // out of bounds
 	else
 	{
