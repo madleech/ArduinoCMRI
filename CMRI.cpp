@@ -72,19 +72,20 @@ bool CMRI::process()
 
 bool CMRI::process_char(char c)
 {
-	// if it's a SET that's fine do nothing
-	// if it's an INIT that's also fine, we don't really care
-	// if it's a GET, well, do nothing since it must be someone else replying
-	// if it's a POLL then reply straight away with our data
+	// if it's a SET, update the output buffer
+	// if it's an INIT, the payload was consumed and the sketch can handle it
+	// if it's a GET, ignore — must be another node replying
+	// if it's a POLL, reply straight away with our input data
 	switch (_decode(c))
 	{
 		case POLL:
 			transmit();
 			return true;
-		
+
 		case SET:
+		case INIT:
 			return true;
-		
+
 		default:
 			return false;
 	}
@@ -192,8 +193,11 @@ uint8_t CMRI::_decode(uint8_t c)
 			break;
 		
 		case DECODE_CMD:
+            _rx_packet_type = c;
 			if (c == SET)
 				_mode = DECODE_DATA;
+            else if (c == INIT)
+     			_mode = DECODE_DATA;
 			else if (c == POLL)
 				goto POSTAMBLE_POLL;
 			else
@@ -242,7 +246,7 @@ uint8_t CMRI::_decode(uint8_t c)
 	
 POSTAMBLE_SET:
 		_mode = PREAMBLE_1;
-		return SET;
+		return _rx_packet_type;
 	
 POSTAMBLE_POLL:
 		_mode = PREAMBLE_1;
