@@ -143,10 +143,9 @@ void CMRI::transmit()
 	_serial.write(GET);
 	for (int i = 0; i < _tx_length; i++)
 	{
-		if (_tx_buffer[i] == ETX)
-			_serial.write(ESC); // escape because this looks like an STX bit (very basic protocol)
-		if (_tx_buffer[i] == ESC)
-			_serial.write(ESC); // escape because this looks like an escape bit (very basic protocol)
+		// DLE-escape STX, ETX and DLE characters
+		if (_tx_buffer[i] == STX || _tx_buffer[i] == ETX || _tx_buffer[i] == ESC)
+			_serial.write(ESC);
 		_serial.write(_tx_buffer[i]);
 	}
 	_serial.write(ETX);
