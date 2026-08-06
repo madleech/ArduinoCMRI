@@ -2,12 +2,12 @@
  * An example of driving multiple C/MRI nodes on a single Arduino
  * ==============================================================
  * Sets up pins 2 and 3 as outputs, and attaches each to a different SMINI node.
- * 
+ *
  * To set up in JMRI:
- * 1: Create a new connection, 
- *    - type = C/MRI, 
- *    - connection = Serial, 
- *    - port = <arduino's port>, 
+ * 1: Create a new connection,
+ *    - type = C/MRI,
+ *    - connection = Serial,
+ *    - port = <arduino's port>,
  *    - speed = 9600
  * 2: Click 'Configure C/MRI nodes' and click 'Add Node' to create a new SMINI node
  * 3: In the same window, type in '1' as the address and click 'Add Node' to add a second SMINI node
@@ -24,23 +24,25 @@
 CMRI cmri0(0); // first SMINI, 24 inputs, 48 outputs
 CMRI cmri1(1); // second SMINI, another 24 inputs and another 48 outputs
 
-void setup() {
-  Serial.begin(9600, SERIAL_8N2); // make sure this matches your speed set in JMRI
-  pinMode(2, OUTPUT);
-  pinMode(3, OUTPUT);
+void setup()
+{
+	Serial.begin(9600, SERIAL_8N2); // make sure this matches your speed set in JMRI
+	pinMode(2, OUTPUT);
+	pinMode(3, OUTPUT);
 }
 
 char c;
-void loop() {
-  // 1: main processing node of cmri library
-  while (Serial.available() > 0)
-  {
-    c = Serial.read();
-    cmri0.process_char(c);
-    cmri1.process_char(c);
-  }
-  
-  // 2: update outputs.
-  digitalWrite(2, cmri0.get_bit(0));
-  digitalWrite(3, cmri1.get_bit(0));
+void loop()
+{
+	// 1: main processing node of cmri library
+	while (Serial.available() > 0)
+	{
+		c = Serial.read();
+		cmri0.process_char(c);
+		cmri1.process_char(c);
+	}
+
+	// 2: update outputs.
+	digitalWrite(2, cmri0.get_bit(0));
+	digitalWrite(3, cmri1.get_bit(0));
 }

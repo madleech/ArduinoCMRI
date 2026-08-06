@@ -13,7 +13,6 @@ CMRI	KEYWORD1
 #######################################
 
 set_address	KEYWORD2
-set_length	KEYWORD2
 process	KEYWORD2
 process_char	KEYWORD2
 transmit	KEYWORD2
@@ -21,9 +20,6 @@ get_bit	KEYWORD2
 get_byte	KEYWORD2
 set_bit	KEYWORD2
 set_byte	KEYWORD2
-decode	KEYWORD2
-valid	KEYWORD2
-packet_type	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
