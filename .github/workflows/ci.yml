@@ -24,9 +24,9 @@ jobs:
       - name: Lint library
         uses: arduino/arduino-lint-action@v1
         with:
-          # CMRI is already in the Library Manager index, so lint against the
-          # rules for libraries being updated.
-          library-manager: update
+          # Use "submit" until the library is accepted into the Library Manager
+          # index; switch to "update" once it is listed.
+          library-manager: submit
           compliance: strict
 
   compile:
@@ -48,7 +48,7 @@ jobs:
             - name: arduino:avr
           libraries: |
             - source-path: ./
-            - name: Auto485
+            - source-url: https://github.com/madleech/Auto485.git
           sketch-paths: |
             - examples/hello_world
             - examples/inputs_and_outputs
