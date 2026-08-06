@@ -9,7 +9,7 @@ jobs:
     name: clang-format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check formatting
         uses: jidicula/clang-format-action@v4.13.0
         with:
@@ -20,9 +20,9 @@ jobs:
     name: arduino-lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Lint library
-        uses: arduino/arduino-lint-action@v1
+        uses: arduino/arduino-lint-action@v3
         with:
           # Use "submit" until the library is accepted into the Library Manager
           # index; switch to "update" once it is listed.
@@ -39,7 +39,7 @@ jobs:
           - arduino:avr:uno
           - arduino:avr:mega
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Compile example sketches
         uses: arduino/compile-sketches@v1
         with:
@@ -64,8 +64,8 @@ jobs:
     name: native unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
       - name: Install PlatformIO
