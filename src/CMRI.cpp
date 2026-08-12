@@ -61,17 +61,19 @@ void CMRI::set_init_handler(void (*handler)(const uint8_t *, int))
 
 // reads in serial data, decodes packets
 // automatically responds to POLL requests
-// returns packet type so if we got a SET request you know to update your outputs
-bool CMRI::process()
+// returns the packet type (CMRI::INIT, CMRI::SET or CMRI::POLL) so if we got a
+// SET request you know to update your outputs, or NULL if no valid packet was
+// received
+char CMRI::process()
 {
 	while (_serial.available() > 0)
 	{
 		if (process_char(_serial.read()))
 		{
-			return true;
+			return _rx_packet_type;
 		}
 	}
-	return false;
+	return NOOP;
 }
 
 bool CMRI::process_char(char c)

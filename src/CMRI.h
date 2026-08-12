@@ -36,7 +36,7 @@ class CMRI
 	void set_address(unsigned int address);
 	void set_init_handler(void (*handler)(const uint8_t *data, int len));
 
-	bool process();
+	char process();
 	bool process_char(char c);
 	void transmit();
 
