@@ -141,6 +141,66 @@ void test_set_packet_updates_outputs(void)
 	TEST_ASSERT_EQUAL_UINT8(0x80, cmri.get_byte(2));
 }
 
+// Regression for the v1.7.0 INIT bug: an INIT ('I') frame must not disturb the
+// output image set by a previous SET. Before the fix, INIT bodies were decoded
+// into _rx_buffer, transiently driving the INIT header bytes onto the outputs.
+static uint8_t g_init_len;
+static uint8_t g_init_data[8];
+static void capture_init(const uint8_t *data, int len)
+{
+	g_init_len = (uint8_t)len;
+	for (int i = 0; i < len && i < (int)sizeof(g_init_data); i++)
+		g_init_data[i] = data[i];
+}
+
+void test_init_does_not_corrupt_outputs(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+	cmri.set_init_handler(capture_init);
+
+	// Establish a known output image.
+	uint8_t set_data[6] = {0xAA, 0x55, 0x0F, 0xF0, 0x12, 0x34};
+	feed_packet(s, 0, CMRI::SET, set_data, 6);
+	TEST_ASSERT_TRUE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(0xAA, cmri.get_byte(0));
+
+	// A typical JMRI INIT: NDP='M', DLH, DLL, NS. bit0 of 'M' (0x4D) is 1 — the
+	// value that used to leak onto output pin 0.
+	g_init_len = 0xEE;
+	uint8_t init_data[4] = {'M', 0x00, 0x0A, 0x00};
+	feed_packet(s, 0, CMRI::INIT, init_data, 4);
+
+	// INIT must not report "outputs updated"...
+	TEST_ASSERT_FALSE(cmri.process());
+	// ...the handler must have fired with the raw payload...
+	TEST_ASSERT_EQUAL_UINT8(4, g_init_len);
+	TEST_ASSERT_EQUAL_UINT8('M', g_init_data[0]);
+	TEST_ASSERT_EQUAL_UINT8(0x0A, g_init_data[2]);
+	// ...and the output image must be exactly what the SET left behind.
+	TEST_ASSERT_EQUAL_UINT8(0xAA, cmri.get_byte(0));
+	TEST_ASSERT_EQUAL_UINT8(0x55, cmri.get_byte(1));
+	TEST_ASSERT_EQUAL_UINT8(0x34, cmri.get_byte(5));
+	TEST_ASSERT_FALSE(cmri.get_bit(0)); // bit0 of byte0 (0xAA) — not the leaked 'M' bit
+}
+
+// Without a registered handler, INIT is ignored entirely (pre-v1.7.0 behaviour):
+// no buffer is allocated, outputs are untouched, and process() reports false.
+void test_init_ignored_without_handler(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	uint8_t set_data[6] = {0xAA, 0x55, 0x0F, 0xF0, 0x12, 0x34};
+	feed_packet(s, 0, CMRI::SET, set_data, 6);
+	TEST_ASSERT_TRUE(cmri.process());
+
+	uint8_t init_data[4] = {'M', 0x00, 0x0A, 0x00};
+	feed_packet(s, 0, CMRI::INIT, init_data, 4);
+	TEST_ASSERT_FALSE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(0xAA, cmri.get_byte(0));
+}
+
 // A packet addressed to another node is ignored: process() is false and no
 // outputs change.
 void test_address_filtering(void)
@@ -203,6 +263,8 @@ int main(int, char **)
 	RUN_TEST(test_byte_bounds);
 	RUN_TEST(test_poll_produces_get_frame);
 	RUN_TEST(test_set_packet_updates_outputs);
+	RUN_TEST(test_init_does_not_corrupt_outputs);
+	RUN_TEST(test_init_ignored_without_handler);
 	RUN_TEST(test_address_filtering);
 	RUN_TEST(test_transmit_escapes_control_bytes);
 	RUN_TEST(test_preamble_resync_after_garbage);

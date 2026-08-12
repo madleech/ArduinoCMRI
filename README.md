@@ -63,38 +63,38 @@ If you wanted to extend this demo to transmit data back to the PC, all you need 
 
 Documentation
 -------------
-**CMRI(unsigned int address = 0, unsigned int input\_bits = 24, unsigned int output\_bits = 48)**
+`CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48)`
 Creates a new CMRI object. The default values will create a device that matches the capabilities of an SMINI node. If you want to bind to a different node address, or address more or less inputs, you can alter it here. The maximum combined number of addressable inputs and outputs is 2048 (C/MRI limitation). The library will work fine with any number of inputs and outputs, it will simply ignore out-of-range data.
 
-**void set\_address(unsigned int address)**
+`void set_address(unsigned int address)`
 Sets the address of the C/MRI node.
 
-**char process()**
+`char process()`
 Reads in available data from the serial port and acts accordingly:
 * For POLL requests, it replies with the current state of the input data.
 * For INIT requests, it does nothing.
 * For SET/TRANSMIT (T) requests, it updates the output data.
 
-Return value is NULL for no valid packet received, or one of CMRI::INIT, CMRI::SET, CMRI::POLL depending on the packet type received.
+Return value is `true` for `POLL` and `SET` messages, otherwise `false`.
 
-**bool process\_char(char c)**
+`bool process_char(char c)`
 Similar to the CMRI::process method, but lets you manage the serial data yourself. Use this if you are processing more than 1 CMRI node in a system.
 
 Return value is true if a valid packet has been received and processing of it has finished. Otherwise it returns false.
 
-**void transmit()**
+`void transmit()`
 Transmits the current state of the input data back to the PC. Creates a CMRI::GET packet.
 
-**bool get\_bit(int n)**
+`bool get_bit(int n)`
 Reads a bit from of the last valid input data received. Use this to update your signals, points, etc.
 
-**char get\_byte(int n)**
+`char get_byte(int n)`
 Reads an entire byte from the input buffer. Use this with shiftOut and some shift registers to vastly expand your I/O capabilities.
 
-**bool set\_bit(int n, bool b)**
+`bool set_bit(int n, bool b)`
 Updates the output buffer to the specified value. Data will be transmitted to the PC either when transmit() is called, or when the next POLL packet is received.
 
-**bool set\_byte(int n, char b)**
+`bool set_byte(int n, char b)`
 Updates an entire byte of the output buffer. Use this with shiftIn and some shift registers to add many extra digital inputs to your system.
 
 
