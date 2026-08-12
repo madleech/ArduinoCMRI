@@ -98,8 +98,8 @@ class CMRI
 	int _mode;
 	int _rx_index;
 
-	uint8_t _decode(uint8_t c);        // process one character received from serial port
-	void _store_data_byte(uint8_t c);  // append a body byte to the buffer for the current packet type
+	uint8_t _decode(uint8_t c);       // process one character received from serial port
+	void _store_data_byte(uint8_t c); // append a body byte to the buffer for the current packet type
 };
 
 #endif
