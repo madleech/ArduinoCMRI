@@ -107,7 +107,7 @@ bool CMRI::process_char(char c)
 	case INIT:
 		// an INIT never touches the output image, so it must not signal
 		// "outputs updated"; deliver the payload via the handler instead
-		if (_init_handler)
+		if (_init_handler && _init_buffer)
 			_init_handler((const uint8_t *)_init_buffer, _rx_data_len);
 		return false;
 
