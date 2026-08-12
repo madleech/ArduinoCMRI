@@ -39,7 +39,7 @@ CMRI::CMRI(unsigned int address, unsigned int input_bits, unsigned int output_bi
 
       // parsing state
       ,
-      _mode(PREAMBLE_1), _rx_index(0), _rx_data_len(0), _init_handler(nullptr)
+      _mode(PREAMBLE_1), _rx_index(0), _rx_data_len(0), _init_handler(nullptr), _init_buffer(nullptr), _init_length(0)
 
 {
 	// clear to zero
@@ -57,6 +57,19 @@ void CMRI::set_address(unsigned int address)
 void CMRI::set_init_handler(void (*handler)(const uint8_t *, int))
 {
 	_init_handler = handler;
+
+	// Lazily allocate a dedicated buffer for INIT payloads the first time a
+	// handler is registered, so INIT bodies are decoded away from the output
+	// image in _rx_buffer. Sized to the output length (with a small floor to
+	// still capture the NDP + delay header on input-only nodes), which covers
+	// standard C/MRI INIT bodies; anything longer is safely truncated.
+	if (handler && _init_buffer == nullptr)
+	{
+		_init_length = _rx_length > 4 ? _rx_length : 4;
+		_init_buffer = (char *)malloc(_init_length);
+		if (_init_buffer == nullptr)
+			_init_length = 0; // allocation failed: discard INIT bodies rather than risk a null write
+	}
 }
 
 // reads in serial data, decodes packets
@@ -88,10 +101,15 @@ bool CMRI::process_char(char c)
 		return true;
 
 	case SET:
-	case INIT:
-		if (ret == INIT && _init_handler)
-			_init_handler((const uint8_t *)_rx_buffer, _rx_data_len);
+		// a SET updated the output image; tell the caller to refresh outputs
 		return true;
+
+	case INIT:
+		// an INIT never touches the output image, so it must not signal
+		// "outputs updated"; deliver the payload via the handler instead
+		if (_init_handler)
+			_init_handler((const uint8_t *)_init_buffer, _rx_data_len);
+		return false;
 
 	default:
 		return false;
@@ -162,6 +180,20 @@ void CMRI::transmit()
 }
 
 // Private methods
+
+// Append one decoded body byte to the buffer belonging to the packet currently
+// being parsed: SET data lands in the output image (_rx_buffer), while INIT data
+// is kept separate in _init_buffer so it can never corrupt the layout outputs.
+// Bytes past the target buffer's length (or with no buffer allocated) are dropped.
+void CMRI::_store_data_byte(uint8_t c)
+{
+	char *buffer = (_rx_packet_type == INIT) ? _init_buffer : _rx_buffer;
+	int length = (_rx_packet_type == INIT) ? _init_length : _rx_length;
+
+	if (buffer != nullptr && _rx_index < length)
+		buffer[_rx_index++] = c;
+}
+
 uint8_t CMRI::_decode(uint8_t c)
 {
 	switch (_mode)
@@ -216,19 +248,12 @@ uint8_t CMRI::_decode(uint8_t c)
 			_mode = DECODE_ESC_DATA;
 		else if (c == ETX)
 			goto POSTAMBLE_SET;
-		else if (_rx_index >= _rx_length)
-		{
-		}
 		else
-			_rx_buffer[_rx_index++] = c;
+			_store_data_byte(c);
 		break;
 
 	case DECODE_ESC_DATA:
-		if (_rx_index >= _rx_length)
-		{
-		}
-		else
-			_rx_buffer[_rx_index++] = c;
+		_store_data_byte(c);
 		_mode = DECODE_DATA;
 		break;
 

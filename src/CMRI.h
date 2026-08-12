@@ -86,13 +86,20 @@ class CMRI
 	int _rx_data_len;
 	void (*_init_handler)(const uint8_t *, int);
 
+	// INIT ('I') payloads are decoded into their own buffer so they never
+	// overwrite the SET ('T') output image held in _rx_buffer. Only allocated
+	// when an init handler is registered; otherwise INIT bodies are discarded.
+	char *_init_buffer;
+	int _init_length;
+
 	Stream &_serial;
 
 	// parsing state variables
 	int _mode;
 	int _rx_index;
 
-	uint8_t _decode(uint8_t c); // process one character received from serial port
+	uint8_t _decode(uint8_t c);        // process one character received from serial port
+	void _store_data_byte(uint8_t c);  // append a body byte to the buffer for the current packet type
 };
 
 #endif
