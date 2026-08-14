@@ -182,7 +182,7 @@ uint8_t CMRI::_decode(uint8_t c)
 	case PREAMBLE_3:
 		if (c == STX)
 			_mode = DECODE_ADDR;
-		else
+		else if (c != 0xFF)
 			_mode = PREAMBLE_1;
 		break;
 
