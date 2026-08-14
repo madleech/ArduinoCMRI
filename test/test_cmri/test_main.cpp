@@ -176,6 +176,53 @@ void test_transmit_escapes_control_bytes(void)
 	TEST_ASSERT_EQUAL_UINT8(CMRI::ETX, s.tx[10]);
 }
 
+// A third SYN byte does not desync the parser.
+void test_triple_syn_accepted(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	cmri.set_byte(0, 0x42);
+
+	s.feed(0xFF); // third SYN
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(0x42, s.tx[5]);
+}
+
+// Four SYN bytes are tolerated.
+void test_quad_syn_accepted(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	cmri.set_byte(0, 0x99);
+
+	s.feed(0xFF); // third SYN
+	s.feed(0xFF); // fourth SYN
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(0x99, s.tx[5]);
+}
+
+// A 0xFF byte inside a SET body is data, not a preamble SYN.
+void test_syn_in_body_not_resynced(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	uint8_t data[6] = {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00};
+	feed_packet(s, 0, CMRI::SET, data, 6);
+	TEST_ASSERT_TRUE(cmri.process());
+
+	TEST_ASSERT_EQUAL_UINT8(0xFF, cmri.get_byte(0));
+
+	cmri.set_byte(0, 0xAA);
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(0xAA, s.tx[5]);
+}
+
 // Garbage before a valid packet is resynced away by the preamble state machine.
 void test_preamble_resync_after_garbage(void)
 {
@@ -205,6 +252,9 @@ int main(int, char **)
 	RUN_TEST(test_set_packet_updates_outputs);
 	RUN_TEST(test_address_filtering);
 	RUN_TEST(test_transmit_escapes_control_bytes);
+	RUN_TEST(test_triple_syn_accepted);
+	RUN_TEST(test_quad_syn_accepted);
+	RUN_TEST(test_syn_in_body_not_resynced);
 	RUN_TEST(test_preamble_resync_after_garbage);
 	return UNITY_END();
 }
