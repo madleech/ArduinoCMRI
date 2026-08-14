@@ -62,6 +62,16 @@ inline void delayMicroseconds(unsigned int)
 {
 }
 
+extern unsigned long _mock_millis;
+inline unsigned long millis()
+{
+	return _mock_millis;
+}
+inline void mock_advance_millis(unsigned long ms)
+{
+	_mock_millis += ms;
+}
+
 // The default argument of the CMRI constructor references Serial; the test
 // translation unit defines it.
 extern Stream Serial;

@@ -24,8 +24,12 @@
 // which always pass an explicit Stream, but needed to satisfy the symbol).
 Stream Serial;
 
+// Definition of the mock millis variable (declared extern in mock/Arduino.h).
+unsigned long _mock_millis = 0;
+
 void setUp(void)
 {
+	_mock_millis = 0;
 }
 
 void tearDown(void)
@@ -194,6 +198,75 @@ void test_preamble_resync_after_garbage(void)
 	TEST_ASSERT_EQUAL_UINT8(CMRI::GET, s.tx[4]);
 }
 
+// A truncated frame does not corrupt the next frame after a timeout.
+void test_truncated_frame_does_not_corrupt_next(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	// Feed a partial SET without ETX (truncated)
+	s.feed(0xFF);
+	s.feed(0xFF);
+	s.feed(CMRI::STX);
+	s.feed('A' + 0);
+	s.feed(CMRI::SET);
+	s.feed(0xAA);
+	s.feed(0xBB);
+	s.feed(0xCC);
+
+	// Process the partial frame -- should not return true
+	TEST_ASSERT_FALSE(cmri.process());
+
+	// Advance time past the inter-byte timeout
+	mock_advance_millis(10);
+
+	// Now send a complete SET (skip 0x03 -- protocol byte)
+	uint8_t full[6] = {0x01, 0x02, 0x04, 0x05, 0x06, 0x07};
+	feed_packet(s, 0, CMRI::SET, full, 6);
+
+	TEST_ASSERT_TRUE(cmri.process());
+
+	// Only the second SET's data should be in the output buffer
+	TEST_ASSERT_EQUAL_UINT8(0x01, cmri.get_byte(0));
+	TEST_ASSERT_EQUAL_UINT8(0x02, cmri.get_byte(1));
+	TEST_ASSERT_EQUAL_UINT8(0x04, cmri.get_byte(2));
+	TEST_ASSERT_EQUAL_UINT8(0x05, cmri.get_byte(3));
+	TEST_ASSERT_EQUAL_UINT8(0x06, cmri.get_byte(4));
+	TEST_ASSERT_EQUAL_UINT8(0x07, cmri.get_byte(5));
+}
+
+// A DLE at the end of a truncated frame does not corrupt the next frame.
+void test_dle_at_end_of_truncated_frame(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	// Feed a partial SET ending with ESC byte (no following byte)
+	s.feed(0xFF);
+	s.feed(0xFF);
+	s.feed(CMRI::STX);
+	s.feed('A' + 0);
+	s.feed(CMRI::SET);
+	s.feed(CMRI::ESC);
+
+	// Process the partial frame -- should not return true
+	TEST_ASSERT_FALSE(cmri.process());
+
+	// Advance time past the inter-byte timeout
+	mock_advance_millis(10);
+
+	// Now send a complete SET (skip 0x03 -- protocol byte)
+	uint8_t full[6] = {0x01, 0x02, 0x04, 0x05, 0x06, 0x07};
+	feed_packet(s, 0, CMRI::SET, full, 6);
+
+	TEST_ASSERT_TRUE(cmri.process());
+
+	TEST_ASSERT_EQUAL_UINT8(0x01, cmri.get_byte(0));
+	TEST_ASSERT_EQUAL_UINT8(0x02, cmri.get_byte(1));
+	TEST_ASSERT_EQUAL_UINT8(0x04, cmri.get_byte(2));
+	TEST_ASSERT_EQUAL_UINT8(0x05, cmri.get_byte(3));
+}
+
 int main(int, char **)
 {
 	UNITY_BEGIN();
@@ -206,5 +279,7 @@ int main(int, char **)
 	RUN_TEST(test_address_filtering);
 	RUN_TEST(test_transmit_escapes_control_bytes);
 	RUN_TEST(test_preamble_resync_after_garbage);
+	RUN_TEST(test_truncated_frame_does_not_corrupt_next);
+	RUN_TEST(test_dle_at_end_of_truncated_frame);
 	return UNITY_END();
 }
