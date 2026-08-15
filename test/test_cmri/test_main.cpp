@@ -194,6 +194,19 @@ void test_preamble_resync_after_garbage(void)
 	TEST_ASSERT_EQUAL_UINT8(CMRI::GET, s.tx[4]);
 }
 
+// set_transmit_delay overrides the default transmit delay.
+void test_set_transmit_delay(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	cmri.set_byte(0, 0x42);
+	cmri.set_transmit_delay(100);
+	cmri.transmit();
+
+	TEST_ASSERT_EQUAL_UINT8(0x42, s.tx[5]);
+}
+
 int main(int, char **)
 {
 	UNITY_BEGIN();
@@ -205,6 +218,7 @@ int main(int, char **)
 	RUN_TEST(test_set_packet_updates_outputs);
 	RUN_TEST(test_address_filtering);
 	RUN_TEST(test_transmit_escapes_control_bytes);
+	RUN_TEST(test_set_transmit_delay);
 	RUN_TEST(test_preamble_resync_after_garbage);
 	return UNITY_END();
 }
