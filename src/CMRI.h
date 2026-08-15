@@ -35,6 +35,7 @@ class CMRI
 	CMRI(unsigned int address = 0, unsigned int input_bits = 24, unsigned int output_bits = 48, Stream &serial_class = Serial);
 	void set_address(unsigned int address);
 	void set_init_handler(void (*handler)(const uint8_t *data, int len));
+	void set_transmit_delay(unsigned int delay_us);
 
 	bool process();
 	bool process_char(char c);
@@ -85,12 +86,20 @@ class CMRI
 	char *_tx_buffer;
 	int _rx_data_len;
 	void (*_init_handler)(const uint8_t *, int);
+	unsigned int _transmit_delay_us;
 
 	Stream &_serial;
 
 	// parsing state variables
 	int _mode;
 	int _rx_index;
+
+#ifndef TRANSMIT_DELAY_US
+// Default RS-485 turnaround delay (microseconds) before transmitting.
+// Modern hosts set dH/dL to zero; this is just for transceiver settling.
+// Override at compile time or use set_transmit_delay() at runtime.
+#define TRANSMIT_DELAY_US 50
+#endif
 
 	uint8_t _decode(uint8_t c); // process one character received from serial port
 };

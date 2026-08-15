@@ -1,23 +1,25 @@
 /**
- * C/MRI INIT handler example
- * ===========================
- * Demonstrates how to register an INIT callback to inspect the
- * configuration payload sent by JMRI at startup.
+ * C/MRI INIT handler with transmit delay example
+ * ================================================
+ * Demonstrates how to register an INIT callback that parses the
+ * transmit delay (dH/dL) from the INIT payload and applies it
+ * using set_transmit_delay().
  *
  * The INIT message body follows NMRA LCS-9.10.1:
  *   byte 0:   NDP (Node Definition Parameter)
- *   bytes 1-2: DLH/DLL (transmit delay, high & low bytes)
+ *   bytes 1-2: dH/dL (transmit delay, high & low bytes)
  *   bytes 3+:  node-type-specific options
  *
- * The transmit delay is computed as (DLH * 256 + DLL) * 10 microseconds.
- * This example reads the delay and prints the configuration to Serial.
+ * The transmit delay is computed as (dH * 256 + dL) * 10 microseconds.
+ * Modern hosts set dH/dL to zero; non-zero values are for legacy
+ * compatibility. This delay is applied before each GET (R) reply to
+ * allow RS-485 transceiver turnaround.
  *
  * To set up in JMRI:
  * 1: Create a new C/MRI connection (Serial, 9600 baud)
  * 2: Configure a node with address 0 — JMRI sends an INIT at startup
  * 3: Open Tools > Tables > Lights and add a light at address 1
  * 4: Open the C/MRI Monitor to watch the INIT message
- *    Raw format: [41 49 43 00 0A ...] = UA 'A', cmd 'I', NDP='C', DL=10
  *
  * Wiring:
  *   Serial (pins 0/1) -> RS-485 transceiver -> host (JMRI)
@@ -32,9 +34,7 @@ CMRI cmri;                      // defaults to a SMINI with address 0, using Ser
 
 // ---------------------------------------------------------------------------
 // INIT handler callback
-// Called automatically when an INIT ('I') packet is received.
-// data  – pointer to the raw INIT payload bytes
-// len   – number of bytes in the payload
+// Parses dH/dL and applies the transmit delay via set_transmit_delay().
 // ---------------------------------------------------------------------------
 void on_init(const uint8_t *data, int len)
 {
@@ -49,24 +49,15 @@ void on_init(const uint8_t *data, int len)
 
 	if (len >= 3)
 	{
-		int delay_us = (data[1] * 256 + data[2]) * 10;
+		unsigned int dH = data[1];
+		unsigned int dL = data[2];
+		unsigned int delay_us = (dH * 256 + dL) * 10;
+
+		cmri.set_transmit_delay(delay_us);
+
 		console.print(F("DL="));
 		console.print(delay_us);
-		console.print(F("us "));
-	}
-
-	if (len > 3)
-	{
-		console.print(F("options="));
-		for (int i = 3; i < len; i++)
-		{
-			if (i > 3)
-				console.print(F(" "));
-			if (data[i] < 16)
-				console.print(F("0"));
-			console.print(data[i], HEX);
-		}
-		console.print(F(" "));
+		console.print(F("us applied "));
 	}
 
 	console.print(len);
