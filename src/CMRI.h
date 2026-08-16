@@ -91,6 +91,14 @@ class CMRI
 	// parsing state variables
 	int _mode;
 	int _rx_index;
+	unsigned long _last_byte_time_ms;
+
+#ifndef INTER_BYTE_TIMEOUT_MS
+// 1 char time = 11 bits / baud_rate (8N2 framing: 1 start + 8 data + 2 stop)
+// default = 5 char times at 9600 bps = 5.73ms
+// For other baud rates: (5UL * 11 * 1000) / baud_rate
+#define INTER_BYTE_TIMEOUT_MS 6
+#endif
 
 	uint8_t _decode(uint8_t c); // process one character received from serial port
 };
