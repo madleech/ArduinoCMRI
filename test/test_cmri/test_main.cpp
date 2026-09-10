@@ -176,6 +176,53 @@ void test_transmit_escapes_control_bytes(void)
 	TEST_ASSERT_EQUAL_UINT8(CMRI::ETX, s.tx[10]);
 }
 
+// A well-formed POLL waits for ETX before replying.
+void test_poll_waits_for_etx(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	cmri.set_byte(0, 0x55);
+
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(CMRI::GET, s.tx[4]);
+	TEST_ASSERT_EQUAL_UINT8(0x55, s.tx[5]);
+}
+
+// A POLL without ETX produces no reply.
+void test_poll_truncated_no_reply(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	cmri.set_byte(0, 0x55);
+
+	s.feed(0xFF);
+	s.feed(0xFF);
+	s.feed(CMRI::STX);
+	s.feed('A' + 0);
+	s.feed(CMRI::POLL);
+
+	TEST_ASSERT_FALSE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT(0u, s.tx.size());
+}
+
+// A POLL with body bytes waits for ETX before replying.
+void test_poll_with_body_waits_for_etx(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s);
+
+	cmri.set_byte(0, 0x77);
+
+	uint8_t body[2] = {0x01, 0x02};
+	feed_packet(s, 0, CMRI::POLL, body, 2);
+	TEST_ASSERT_TRUE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT8(CMRI::GET, s.tx[4]);
+	TEST_ASSERT_EQUAL_UINT8(0x77, s.tx[5]);
+}
+
 // Garbage before a valid packet is resynced away by the preamble state machine.
 void test_preamble_resync_after_garbage(void)
 {
@@ -194,6 +241,81 @@ void test_preamble_resync_after_garbage(void)
 	TEST_ASSERT_EQUAL_UINT8(CMRI::GET, s.tx[4]);
 }
 
+// Regression: a node that has been polled (its _rx_packet_type is 'P') must NOT
+// reply when it hears another node's POLL. Before the fix, finishing an ignored
+// frame checked the stale packet type and spuriously transmitted a GET reply,
+// which on a multi-node bus collided with the addressed node's response.
+void test_no_reply_to_other_nodes_poll(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s); // we are node 0
+
+	cmri.set_byte(0, 0x55);
+
+	// JMRI polls us first, so _rx_packet_type latches to POLL.
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+
+	// Now JMRI polls node 1; we only hear it. We must stay silent.
+	s.tx.clear();
+	feed_packet(s, 1, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_FALSE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT(0u, s.tx.size());
+}
+
+// Regression: same as above, but the ignored frame is another node's GET reply.
+// This was the ping-pong: each node's reply triggered the other's stale reply.
+void test_no_reply_to_other_nodes_get(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s); // we are node 0
+
+	cmri.set_byte(0, 0x55);
+
+	// JMRI polls us first, so _rx_packet_type latches to POLL.
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+
+	// Node 1's GET reply frame (as produced by its transmit()): FF FF STX 'B' 'R' data ETX.
+	s.tx.clear();
+	s.feed(0xFF);
+	s.feed(0xFF);
+	s.feed(CMRI::STX);
+	s.feed('A' + 1);
+	s.feed(CMRI::GET);
+	s.feed(0xAA);
+	s.feed(0x00);
+	s.feed(0x00);
+	s.feed(CMRI::ETX);
+
+	TEST_ASSERT_FALSE(cmri.process());
+	TEST_ASSERT_EQUAL_UINT(0u, s.tx.size());
+}
+
+// A POLL addressed to us still replies exactly once, even after ignoring other
+// nodes' frames in between (stale _rx_packet_type must not suppress it).
+void test_poll_still_replies_after_ignoring(void)
+{
+	Stream s;
+	CMRI cmri(0, 24, 48, s); // we are node 0
+
+	cmri.set_byte(0, 0x66);
+
+	// Ignore a SET and a POLL for node 1.
+	uint8_t set_data[6] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+	feed_packet(s, 1, CMRI::SET, set_data, 6);
+	feed_packet(s, 1, CMRI::POLL, nullptr, 0);
+
+	// Our own poll must still produce one reply.
+	feed_packet(s, 0, CMRI::POLL, nullptr, 0);
+	TEST_ASSERT_TRUE(cmri.process());
+
+	// Exactly one GET frame, with our staged byte.
+	TEST_ASSERT_EQUAL_UINT(9u, s.tx.size());
+	TEST_ASSERT_EQUAL_UINT8(CMRI::GET, s.tx[4]);
+	TEST_ASSERT_EQUAL_UINT8(0x66, s.tx[5]);
+}
+
 int main(int, char **)
 {
 	UNITY_BEGIN();
@@ -205,6 +327,12 @@ int main(int, char **)
 	RUN_TEST(test_set_packet_updates_outputs);
 	RUN_TEST(test_address_filtering);
 	RUN_TEST(test_transmit_escapes_control_bytes);
+	RUN_TEST(test_poll_waits_for_etx);
+	RUN_TEST(test_poll_truncated_no_reply);
+	RUN_TEST(test_poll_with_body_waits_for_etx);
+	RUN_TEST(test_no_reply_to_other_nodes_poll);
+	RUN_TEST(test_no_reply_to_other_nodes_get);
+	RUN_TEST(test_poll_still_replies_after_ignoring);
 	RUN_TEST(test_preamble_resync_after_garbage);
 	return UNITY_END();
 }
